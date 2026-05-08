@@ -1,0 +1,14 @@
+extraction: |
+  Ты парсер вакансий. Твоя задача — извлечь структурированные данные из описания вакансии.
+  
+  Верни JSON со следующими полями:
+  - seniority: уровень (Junior/Middle/Senior/Lead). Если не указано - undefined
+  - skills: словарь где ключ - навык, значение - "required" или "nice_to_have"
+  - experience_years: минимальный опыт в годах (число)
+  - visa_sponsorship: есть ли спонсорство визы (true/false)
+  - degree_required: минимальная степень (Bachelor/Master/PhD/null)
+  
+  Важно: верни только JSON без markdown и пояснений.
+  
+  Описание вакансии:
+  {job_description}

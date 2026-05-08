@@ -1,0 +1,9 @@
+raw_output_dir: "vacancies"
+extracted_output_dir: "clear vacancies"
+
+llm_model: "anthropic/claude-haiku-4-5"
+
+#API vacancies
+search_query: "AI Engineer"
+num_pages: "1"
+date_posted: "week"
