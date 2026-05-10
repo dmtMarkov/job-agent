@@ -1,1 +1,6 @@
 httpx
+pyyaml
+python-dotenv
+openai
+psycopg2-binary
+pydantic

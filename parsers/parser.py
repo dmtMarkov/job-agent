@@ -1,8 +1,4 @@
 import httpx
-import json
-
-from pathlib import Path
-
 from utils import get_env, get_yaml
 
 class Parser:
@@ -31,21 +27,5 @@ class Parser:
         return data["data"]
 
 
-
-def local_writer(cfg):
-
-    output_dir = Path(cfg["raw_output_dir"])
-    output_dir.mkdir(exist_ok=True)
-
-    vacancies = get_vacancies(cfg)
-    for vacancy in vacancies:
-        job_id = vacancy["job_id"]
-        filepath = output_dir / f"{job_id}.json"
-
-        with open(filepath, 'w', encoding="utf-8") as outfile:
-            json.dump(vacancy, outfile, ensure_ascii=False, indent=4)
-
-    print(f"Сохранено {len(vacancies)} вакансий в папку '{output_dir}'")
-    return vacancies
 
 
