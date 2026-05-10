@@ -1,9 +1,21 @@
 raw_output_dir: "vacancies"
-extracted_output_dir: "clear vacancies"
+processed_output_dir: "clear vacancies"
 
-llm_model: "anthropic/claude-haiku-4-5"
+#LLM Agent
+LLM:
+  base_url: "https://openrouter.ai/api/v1"
+  llm_model: "anthropic/claude-haiku-4-5"
+  embedding_model: "openai/text-embedding-3-small"
 
 #API vacancies
-search_query: "AI Engineer"
-num_pages: "1"
-date_posted: "week"
+API_config:
+  Search_params:
+    search_query: "AI Engineer"
+    num_pages: "1"
+    date_posted: "week"
+  API_params:
+    API_url: "https://jsearch.p.rapidapi.com/search"
+    API_x-rapidapi-host: "jsearch.p.rapidapi.com"
+
+#Work parameters
+Local: False
