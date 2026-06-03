@@ -17,8 +17,8 @@ class ExtractionAgent(BaseLLMAgent):
         self.prompt_config = get_yaml('prompts.yaml')
 
     def extract_skills(self, description: str) -> str | None:
-
-        prompt = self.prompt_config['extraction'].format(job_description=description)
+        existing_stacks = "(пока нет, создай новый)"
+        prompt = self.prompt_config['extraction'].format(job_description=description, existing_stacks=existing_stacks)
 
         response = self.client.chat.completions.create(
             model=self.config['llm_model'],

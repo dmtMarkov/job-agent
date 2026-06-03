@@ -24,6 +24,7 @@ class Parser:
 
     def get_vacancies(self, search_query):
         data = self._get_raw_vacancies(search_query)
+        print(data)
         return data["data"]
 
 

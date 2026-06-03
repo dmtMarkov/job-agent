@@ -2,18 +2,19 @@ from utils import get_yaml, parse_date, parse_llm_json
 from parsers.local_storage import LocalStorage
 from parsers.parser import Parser
 from agents.base_llm_agent import ExtractionAgent, EmbeddingAgent
-from db.repositories.vacancies import save_vacancy, vacancy_exists
+from db.repositories.vacancies import VacanciesRepository
 
 def run_pipeline():
     cfg = get_yaml('config.yaml')
 
     local_storage = LocalStorage()
+    vacancy_worker = VacanciesRepository()
     parser = Parser()
 
     if cfg['Local']:
         data = local_storage.read()
     else:
-        data = parser.get_vacancies('CV')
+        data = parser.get_vacancies('AI Engineer')
         local_storage.write_raw_data(data)
 
 
@@ -22,8 +23,8 @@ def run_pipeline():
     for vacancy in data:
         job_id = vacancy['job_id']
 
-        if vacancy_exists(job_id):
-            continue
+        #if vacancy_worker.vacancy_exists(job_id):
+         #   continue
 
         extracted = extraction_agent.extract_skills(description=vacancy['job_description'])
         if not extracted:
@@ -35,7 +36,7 @@ def run_pipeline():
 
         local_storage.write_processed(vacancy, extracted_dict, embedding)
 
-        save_vacancy({
+        """vacancy_worker.save_vacancy({
             "job_id": job_id,
             "company": vacancy.get("employer_name"),
             "country": vacancy.get("job_country"),
@@ -45,7 +46,7 @@ def run_pipeline():
             "extracted_json": extracted_dict,
             "embedding": embedding,
             "raw_json": vacancy
-        })
+        })"""
 
 
         print(f"Save vacancy {job_id}")
