@@ -50,6 +50,33 @@ ON CREATE SET req.mention_count = 1,
 ON MATCH SET req.mention_count = req.mention_count + 1,
              req.required_count = req.required_count + CASE WHEN skill.importance = 'required' THEN 1 ELSE 0 END
 """
+
+_FIND_ROLE: LiteralString="""
+MATCH (r:Role {canonical_name: $canonical_name})
+RETURN r
+"""
+
+_GET_ROLE_STACKS: LiteralString = """
+MATCH (r:Role {canonical_name: $canonical_name})-[hs:HAS_STACK]->(s:Stack)
+RETURN s.name AS name, s.family AS family, hs.count AS count
+ORDER BY hs.count DESC
+"""
+
+_GET_ROLE_SKILLS: LiteralString = """
+MATCH (r:Role {canonical_name: $canonical_name})-[:HAS_STACK]->(:Stack)
+      -[:AT_LEVEL]->(sen:Seniority)-[req:REQUIRES]->(sk:Skill)
+WITH sk.name AS skill,
+     sum(req.mention_count) AS mentions,
+     sum(sen.count) AS total,
+     sum(req.required_count) AS required
+RETURN skill,
+       mentions,
+       total,
+       CASE WHEN total > 0 THEN toFloat(mentions) / total ELSE 0.0 END AS frequency,
+       CASE WHEN mentions > 0 THEN toFloat(required) / mentions ELSE 0.0 END AS required_ratio
+ORDER BY frequency DESC
+"""
+
 logger = logging.getLogger(__name__)
 
 class GraphRepository:
@@ -79,16 +106,16 @@ class GraphRepository:
         self._driver.close()
 
     def init_schema(self):
-        with self._driver.session() as session:
+        with self._session() as session:
             session.run(_CONSTRAINT_ROLE)
             session.run(_CONSTRAINT_SKILL)
 
-    def merge_role(self, canonical_name, embedding, alias):
+    def merge_role(self, canonical_name, embedding, aliases):
         with self._session() as session:
             session.run(_MERGE_ROLE,
                         canonical_name=canonical_name,
                         embedding=embedding,
-                        aliases=alias)
+                        aliases=aliases)
 
     def merge_stack(self, canonical_name, name, family):
         with self._session() as session:
@@ -111,4 +138,26 @@ class GraphRepository:
                         name=name,
                         level=level,
                         skills=skills)
+
+    def find_role_by_title(self, title):
+        with self._session() as session:
+            result = session.run(_FIND_ROLE,
+                                canonical_name=title)
+            record = result.single()
+            if record is None:
+                return None
+            return dict(record["r"])
+
+    def get_role_skills(self, canonical_name):
+        with self._session() as session:
+            result = session.run(_GET_ROLE_SKILLS,
+                                 canonical_name=canonical_name)
+            return [dict(record) for record in result]
+
+    def get_role_stacks(self, canonical_name):
+        with self._session() as session:
+            result = session.run(_GET_ROLE_STACKS,
+                                 canonical_name=canonical_name)
+            return [dict(record) for record in result]
+
 
