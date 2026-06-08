@@ -15,7 +15,14 @@ extraction: |
       Уже существующие стеки этой роли: {existing_stacks}
       Если технология вакансии соответствует существующему стеку — верни ТОЧНО его название из списка.
       Если соответствия нет — верни новое название в нормализованной форме.
+  - skills: конкретные технологии, инструменты, языки
+  Примеры правильно: "python", "spark", "airflow", "aws", "kubernetes"
+  Примеры неправильно: "data engineering", "machine learning", "cloud computing"
+  НЕ включать домены и общие концепции — только конкретные инструменты
+  - НЕ включать сертификаты (AWS Certified, Google Professional, etc.)
+  - только технологии и инструменты
   - seniority: уровень (Junior/Middle/Senior/Lead). Если не указано - undefined
+  - requires_clearance: требует ли вакансия security clearance (true/false)
   - skills: словарь где ключ - навык, значение - "required" или "nice_to_have"
   - experience_years: минимальный опыт в годах (число)
   - visa_sponsorship: есть ли спонсорство визы (true/false)
@@ -25,3 +32,28 @@ extraction: |
   
   Описание вакансии:
   {job_description}
+
+role_resolution: |
+  Ты определяешь canonical_name роли и алиас для вакансии.
+
+  Title вакансии: {title}
+
+  Существующие роли в системе:
+  {candidates}
+
+  Существующие алиасы ролей:
+  {aliases}
+
+  Правила для canonical_name:
+  - Если title соответствует одной из существующих ролей — верни её название ТОЧНО как в списке
+  - Если это новая роль — верни нормализованное название на английском (например "ML Engineer", "DevOps Engineer")
+  - Убери уровень (Senior/Junior/Lead/Staff) — только специализация
+
+  Правила для alias:
+  - Новая роль — alias равен canonical_name (первый алиас = само название)
+  - Title = грейд + существующая роль ("Senior AI Engineer") и алиас уже есть — alias: null
+  - Title = новое название той же роли ("LLM Engineer" = "AI Engineer") — alias: нормализованный title
+  - Алиас уже есть в списке — alias: null (не дублировать)
+
+  Верни только JSON без markdown и пояснений:
+  {{"canonical_name": "AI Engineer", "alias": "LLM Application Engineer"}}

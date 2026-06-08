@@ -59,7 +59,7 @@ class LocalStorage:
             "url": vacancy.get("job_apply_link"),
             "date_published": vacancy.get("job_posted_at"),
             "extracted": extracted,
-            "embedding": embedding  # ← добавили
+            "embedding": embedding
         }
 
         filepath = self.processed_dir / f"{job_id}.json"

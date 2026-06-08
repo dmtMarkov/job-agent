@@ -20,11 +20,12 @@ class Parser:
                     "date_posted": self.cfg["Search_params"]["date_posted"]
                 }
             )
+
+        print(response.json())
         return response.json()
 
     def get_vacancies(self, search_query):
         data = self._get_raw_vacancies(search_query)
-        print(data)
         return data["data"]
 
 

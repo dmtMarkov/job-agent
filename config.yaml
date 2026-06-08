@@ -18,4 +18,4 @@ API_config:
     API_x-rapidapi-host: "jsearch.p.rapidapi.com"
 
 #Work parameters
-Local: False
+Local: True
