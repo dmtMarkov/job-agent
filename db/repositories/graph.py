@@ -1,4 +1,5 @@
 import logging
+import time
 from contextlib import contextmanager
 from typing import LiteralString
 
@@ -15,13 +16,23 @@ CREATE CONSTRAINT skill_name IF NOT EXISTS
 FOR (s:Skill) REQUIRE s.name IS UNIQUE
 """
 
+_CONSTRAINT_ALIAS: LiteralString="""
+CREATE CONSTRAINT alias_name IF NOT EXISTS
+FOR (a:Alias) REQUIRE a.name IS UNIQUE
+"""
+
 _MERGE_ROLE: LiteralString= """
 MERGE (r:Role {canonical_name: $canonical_name})
-ON CREATE SET r.aliases = $aliases,
-              r.count = 1
-ON MATCH SET r.count = r.count + 1,
-             r.aliases = r.aliases + [a IN $aliases WHERE NOT a IN r.aliases]
-SET r.embedding = $embedding
+ON CREATE SET r.count = 1
+ON MATCH SET r.count = r.count + 1
+"""
+
+_MERGE_ALIAS: LiteralString= """
+MATCH (r:Role {canonical_name: $canonical_name})
+MERGE (a:Alias {name: $alias})
+MERGE (r)-[ha:HAS_ALIAS]->(a)
+ON CREATE SET ha.count = 1
+ON MATCH SET ha.count = ha.count + 1
 """
 
 _MERGE_STACK: LiteralString="""
@@ -44,22 +55,40 @@ _MERGE_SKILL: LiteralString="""
 MATCH (r:Role {canonical_name: $canonical_name})-[:HAS_STACK]->(s:Stack {name: $name})
               -[:AT_LEVEL]->(sen:Seniority {level: $level})
 UNWIND $skills AS skill
-MERGE (sen)-[req:REQUIRES]->(sk:Skill {name: skill.name})
+MERGE (sk:Skill {name: skill.name})
+MERGE (sen)-[req:REQUIRES]->(sk)
 ON CREATE SET req.mention_count = 1,
               req.required_count = CASE WHEN skill.importance = 'required' THEN 1 ELSE 0 END
 ON MATCH SET req.mention_count = req.mention_count + 1,
              req.required_count = req.required_count + CASE WHEN skill.importance = 'required' THEN 1 ELSE 0 END
 """
 
-_FIND_ROLE: LiteralString="""
+_GET_ROLES_BY_NAMES: LiteralString = """
+MATCH (r:Role)
+WHERE r.canonical_name IN $names
+RETURN r.canonical_name AS canonical_name
+"""
+
+_GET_ROLE: LiteralString = """
 MATCH (r:Role {canonical_name: $canonical_name})
-RETURN r
+RETURN r.canonical_name AS canonical_name, r.count AS count
+"""
+
+_GET_ROLE_ALIASES: LiteralString = """
+MATCH (r:Role {canonical_name: $canonical_name})-[ha:HAS_ALIAS]->(a:Alias)
+RETURN a.name AS alias, ha.count AS count
+ORDER BY ha.count DESC
 """
 
 _GET_ROLE_STACKS: LiteralString = """
 MATCH (r:Role {canonical_name: $canonical_name})-[hs:HAS_STACK]->(s:Stack)
 RETURN s.name AS name, s.family AS family, hs.count AS count
 ORDER BY hs.count DESC
+"""
+
+_GET_ALL_ROLES: LiteralString = """
+MATCH (r:Role)
+RETURN r.canonical_name AS canonical_name
 """
 
 _GET_ROLE_SKILLS: LiteralString = """
@@ -81,7 +110,11 @@ logger = logging.getLogger(__name__)
 
 class GraphRepository:
     def __init__(self, uri: str, username: str, password: str):
-        self._driver = GraphDatabase.driver(uri, auth=(username, password))
+        self._driver = GraphDatabase.driver(uri,
+                                            auth=(username, password),
+                                            max_connection_lifetime=60,
+                                            keep_alive=True
+                                            )
 
     @classmethod
     def from_env(cls):
@@ -109,13 +142,17 @@ class GraphRepository:
         with self._session() as session:
             session.run(_CONSTRAINT_ROLE)
             session.run(_CONSTRAINT_SKILL)
+            session.run(_CONSTRAINT_ALIAS)
 
-    def merge_role(self, canonical_name, embedding, aliases):
+    def merge_role(self, canonical_name):
         with self._session() as session:
             session.run(_MERGE_ROLE,
-                        canonical_name=canonical_name,
-                        embedding=embedding,
-                        aliases=aliases)
+                        canonical_name=canonical_name
+                        )
+
+    def merge_alias(self, canonical_name: str, alias: str) -> None:
+        with self._session() as session:
+            session.run(_MERGE_ALIAS, canonical_name=canonical_name, alias=alias)
 
     def merge_stack(self, canonical_name, name, family):
         with self._session() as session:
@@ -139,14 +176,13 @@ class GraphRepository:
                         level=level,
                         skills=skills)
 
-    def find_role_by_title(self, title):
+    def get_role(self, canonical_name: str) -> dict | None:
         with self._session() as session:
-            result = session.run(_FIND_ROLE,
-                                canonical_name=title)
+            result = session.run(_GET_ROLE, canonical_name=canonical_name)
             record = result.single()
             if record is None:
                 return None
-            return dict(record["r"])
+            return dict(record)
 
     def get_role_skills(self, canonical_name):
         with self._session() as session:
@@ -160,4 +196,18 @@ class GraphRepository:
                                  canonical_name=canonical_name)
             return [dict(record) for record in result]
 
+    def get_all_roles(self) -> list[str]:
+        with self._session() as session:
+            result = session.run(_GET_ALL_ROLES)
+            return [record["canonical_name"] for record in result]
+
+    def get_roles_by_names(self, names: list[str]) -> list[str]:
+        with self._session() as session:
+            result = session.run(_GET_ROLES_BY_NAMES, names=names)
+            return [record["canonical_name"] for record in result]
+
+    def get_role_aliases(self, canonical_name: str) -> list[str]:
+        with self._session() as session:
+            result = session.run(_GET_ROLE_ALIASES, canonical_name=canonical_name)
+            return [record["alias"] for record in result]
 

@@ -72,8 +72,17 @@ class RoleModel(Base):
 class VacanciesRepository:
     def __init__(self, database_url: str):
         self._database_url = database_url
-        self._engine = create_engine(database_url, pool_pre_ping=True)
+        self._engine = create_engine(
+            database_url,
+            pool_pre_ping=True,
+            pool_recycle=300,
+            pool_size=2,
+            max_overflow=0,
+        )
         self._session_factory = sessionmaker(bind=self._engine, expire_on_commit=False)
+
+    def init_schema(self) -> None:
+        Base.metadata.create_all(self._engine)
 
     @classmethod
     def from_env(cls) -> 'VacanciesRepository':
