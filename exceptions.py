@@ -1,0 +1,3 @@
+
+class EmptyJson(Exception):
+    pass
