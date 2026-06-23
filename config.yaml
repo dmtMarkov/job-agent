@@ -5,7 +5,10 @@ processed_output_dir: "clear vacancies"
 LLM:
   base_url: "https://openrouter.ai/api/v1"
   llm_model: "anthropic/claude-haiku-4-5"
+  router_model: "google/gemini-flash-1.5-8b"
   embedding_model: "openai/text-embedding-3-small"
+  conversation_model: "anthropic/claude-sonnet-4.5"
+
 
 #API vacancies
 API_config:

@@ -1,6 +1,6 @@
 import re
 import logging
-from agents.base_llm_agent import EmbeddingAgent
+from agents.embedding_agent import EmbeddingAgent
 from db.repositories.skill_embedding_repository import SkillEmbeddingRepository
 
 logger = logging.getLogger(__name__)

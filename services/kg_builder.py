@@ -2,8 +2,9 @@ from openai.types import skill
 
 from db.repositories.role_embeddings import RoleEmbeddingRepository
 from db.repositories.graph import GraphRepository
-from agents.skill_embedding_service import SkillEmbeddingService
-from agents.base_llm_agent import RoleResolutionAgent
+from services.skill_embedding_service import SkillEmbeddingService
+from agents.role_resolution_agent import RoleResolutionAgent
+
 
 class KnowledgeGraphBuilder:
 
